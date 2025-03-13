@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { LogIn, Mail, Lock, Github, Chrome } from "lucide-react";
+import { useAuth } from "@/app/context/auth-context";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -18,35 +19,14 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+  const { authState } = useAuth();
 
   // Check for existing session on component mount
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          router.push("/dashboard");
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
-      }
-    };
-
-    checkSession();
-  }, [router]);
-
-  // Set up auth state listener
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        router.push("/dashboard");
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router]);
+    if (authState.user) {
+      router.push("/dashboard");
+    }
+  }, [authState.user, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

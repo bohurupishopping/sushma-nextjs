@@ -11,6 +11,8 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { UserPlus, Mail, Lock, User, Github, Chrome } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { UserRole } from "@/types/user";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function SignUp() {
   const [displayName, setDisplayName] = useState("");
@@ -20,6 +22,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [role, setRole] = useState<UserRole>("user"); // Default role is 'user'
   const router = useRouter();
 
   const calculatePasswordStrength = (password: string): number => {
@@ -54,18 +57,21 @@ export default function SignUp() {
     setError(null);
 
     try {
+      // Step 1: Sign up the user
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             display_name: displayName,
+            role: role, // Include role in user metadata
           },
         },
       });
 
       if (signUpError) throw signUpError;
 
+      // Step 2: Sign in the user
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -73,6 +79,7 @@ export default function SignUp() {
 
       if (signInError) throw signInError;
       
+      // Step 3: Redirect to dashboard
       router.push("/dashboard");
     } catch (error: any) {
       setError(error.message);
@@ -167,6 +174,24 @@ export default function SignUp() {
                   required
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role (For Testing)</Label>
+              <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="worker">Worker</SelectItem>
+                  <SelectItem value="dealer">Dealer</SelectItem>
+                  <SelectItem value="salesman">Salesman</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Note: This is for testing purposes. In production, roles would be assigned by administrators.
+              </p>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox

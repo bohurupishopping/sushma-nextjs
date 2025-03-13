@@ -1,5 +1,10 @@
+"use client";
+
+import { useAuth } from "@/app/context/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Activity, TrendingUp, DollarSign } from "lucide-react";
+import { Users, Activity, TrendingUp, DollarSign, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const stats = [
   {
@@ -33,13 +38,30 @@ const stats = [
 ];
 
 export default function Dashboard() {
+  const { authState, signOut, hasRole } = useAuth();
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Welcome back! Here's an overview of your statistics.
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Welcome back, {authState.user?.user_metadata?.display_name || "User"}! Here's an overview of your statistics.
+          </p>
+        </div>
+        <div className="flex space-x-4">
+          {hasRole("admin") && (
+            <Link href="/admin">
+              <Button variant="outline" className="flex items-center">
+                <Shield className="mr-2 h-4 w-4" />
+                Admin Panel
+              </Button>
+            </Link>
+          )}
+          <Button variant="outline" onClick={signOut}>
+            Sign Out
+          </Button>
+        </div>
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -64,6 +86,34 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>User Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="font-medium">Email:</span>
+              <span>{authState.user?.email}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Display Name:</span>
+              <span>{authState.user?.user_metadata?.display_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Role:</span>
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                {authState.profile?.role || "user"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Account Created:</span>
+              <span>{new Date(authState.user?.created_at || "").toLocaleDateString()}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
