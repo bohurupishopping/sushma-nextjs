@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusIcon, Loader2, ShoppingCart, Building2, Package2, ClipboardList } from "lucide-react";
+import { PlusIcon, Loader2, ShoppingCart, Building2, Package2, ClipboardList, ChevronDownIcon, ChevronUpIcon, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -83,6 +83,7 @@ export function NewOrderDialog() {
   const [loading, setLoading] = useState(false);
   const [fetchingDealers, setFetchingDealers] = useState(false);
   const [fetchingProducts, setFetchingProducts] = useState(false);
+  const [notesExpanded, setNotesExpanded] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<FormData>({
@@ -284,14 +285,13 @@ export function NewOrderDialog() {
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <div className="p-2 rounded-full bg-orange-100 text-orange-600">
-              <ShoppingCart className="h-5 w-5" />
+            <div className="flex flex-col items-center justify-center w-full">
+              <div className="p-2 rounded-full bg-orange-100 text-orange-600 mb-2">
+                <ShoppingCart className="h-5 w-5" />
+              </div>
+              <DialogTitle className="text-xl font-semibold">Create New Order</DialogTitle>
             </div>
-            <DialogTitle className="text-xl font-semibold">Create New Order</DialogTitle>
           </div>
-          <DialogDescription>
-            Fill in the details below to create a new order
-          </DialogDescription>
         </DialogHeader>
         
         <Separator className="my-4" />
@@ -299,11 +299,6 @@ export function NewOrderDialog() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-5">
-              <div className="flex items-center gap-2 text-orange-600 font-medium">
-                <Building2 className="h-4 w-4" />
-                <h3>Dealer Information</h3>
-              </div>
-              
               <FormField
                 control={form.control}
                 name="dealer_id"
@@ -324,6 +319,29 @@ export function NewOrderDialog() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <div className="flex items-center px-3 pb-2 pt-1 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-950 z-10">
+                          <Search className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                          <input 
+                            className="flex h-9 w-full rounded-md bg-transparent py-2 text-sm outline-none placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            placeholder="Search dealers..."
+                            onChange={(e) => {
+                              // This input will filter the dealers list as you type
+                              const searchTerm = e.target.value.toLowerCase();
+                              const dealerElements = document.querySelectorAll('[data-dealer-name]');
+                              
+                              dealerElements.forEach((element) => {
+                                const dealerName = element.getAttribute('data-dealer-name')?.toLowerCase() || '';
+                                const dealerCode = element.getAttribute('data-dealer-code')?.toLowerCase() || '';
+                                
+                                if (dealerName.includes(searchTerm) || dealerCode.includes(searchTerm)) {
+                                  element.classList.remove('hidden');
+                                } else {
+                                  element.classList.add('hidden');
+                                }
+                              });
+                            }}
+                          />
+                        </div>
                         {fetchingDealers ? (
                           <div className="flex items-center justify-center py-2">
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -333,7 +351,13 @@ export function NewOrderDialog() {
                           <div className="p-2 text-sm text-gray-500">No dealers found</div>
                         ) : (
                           dealers.map((dealer) => (
-                            <SelectItem key={dealer.id} value={dealer.id}>
+                            <SelectItem 
+                              key={dealer.id} 
+                              value={dealer.id}
+                              data-dealer-name={dealer.name}
+                              data-dealer-code={dealer.dealer_code}
+                              className="data-[hidden=true]:hidden"
+                            >
                               {dealer.name} ({dealer.dealer_code})
                             </SelectItem>
                           ))
@@ -366,10 +390,7 @@ export function NewOrderDialog() {
             <Separator />
 
             <div className="space-y-5">
-              <div className="flex items-center gap-2 text-orange-600 font-medium">
-                <Package2 className="h-4 w-4" />
-                <h3>Product Details</h3>
-              </div>
+              
 
               <FormField
                 control={form.control}
@@ -448,29 +469,46 @@ export function NewOrderDialog() {
 
             <Separator />
 
-            <div className="space-y-5">
-              <div className="flex items-center gap-2 text-orange-600 font-medium">
-                <ClipboardList className="h-4 w-4" />
-                <h3>Additional Information</h3>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Add any additional notes or special instructions"
-                        className="rounded-md border-gray-300 dark:border-gray-700 min-h-[80px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            <div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setNotesExpanded(!notesExpanded)}
+                className="p-0 h-auto w-full flex items-center justify-between text-orange-600 hover:bg-transparent hover:text-orange-700"
+              >
+                <div className="flex items-center gap-2 font-medium">
+                  <PlusIcon className="h-4 w-4" />
+                  <span>Additional Information</span>
+                </div>
+                {notesExpanded ? (
+                  <ChevronUpIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronDownIcon className="h-4 w-4" />
                 )}
-              />
+              </Button>
+
+              {notesExpanded && (
+                <div className="mt-4 space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notes (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Add any additional notes or special instructions"
+                            className="rounded-md border-gray-300 dark:border-gray-700 min-h-[80px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
             </div>
 
             <DialogFooter className="pt-2">
