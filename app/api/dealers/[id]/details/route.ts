@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import type { NextRequest } from 'next/server';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
-    console.log('Fetching dealer details for ID:', params.id);
+    console.log('Fetching dealer details for ID:', context.params.id);
 
     // First get the dealer data
     const { data: dealerData, error: dealerError } = await supabaseAdmin
       .from('dealers')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .single();
 
     if (dealerError) {
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     if (!dealerData) {
-      console.error('No dealer found for ID:', params.id);
+      console.error('No dealer found for ID:', context.params.id);
       return NextResponse.json(
         { error: 'Dealer not found' },
         { status: 404 }
@@ -40,7 +41,6 @@ export async function GET(
 
     if (profileError) {
       console.error('Supabase error fetching profile:', profileError);
-      // Don't return error here, just log it
     }
 
     // If dealer has a price chart, get the price chart data
@@ -54,7 +54,6 @@ export async function GET(
 
       if (chartError) {
         console.error('Supabase error fetching price chart:', chartError);
-        // Don't return error here, just log it
       } else {
         priceChartData = chartData;
       }
@@ -64,7 +63,7 @@ export async function GET(
     const responseData = {
       ...dealerData,
       profile: profileData || null,
-      price_chart: priceChartData || null
+      price_chart: priceChartData || null,
     };
 
     console.log('Successfully fetched dealer data:', responseData);
