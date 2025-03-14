@@ -1,5 +1,13 @@
 import { PriceChartDetailsClient } from "./price-chart-details-client";
 
-export default function PriceChartDetailsPage({ params }: { params: { id: string } }) {
-  return <PriceChartDetailsClient id={params.id} />;
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function PriceChartDetailsPage({ params }: PageProps) {
+  const { id } = await params;
+  return <PriceChartDetailsClient id={id} />;
 } 
