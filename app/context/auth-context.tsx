@@ -3,13 +3,14 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { AuthState, UserProfile, UserWithProfile, UserRole } from "@/types/user";
+import { AuthState, Profile, UserWithProfile, UserRole, UserStatus } from "@/types/user";
 
 const initialState: AuthState = {
   user: null,
   profile: null,
   isLoading: true,
   isAdmin: false,
+  isActive: false,
 };
 
 interface AuthContextType {
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return null;
         }
 
-        return data as UserProfile;
+        return data as Profile;
       } catch (error) {
         console.error("Error in fetchUserProfile:", error);
         return null;
@@ -61,18 +62,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             profile: null,
             isLoading: false,
             isAdmin: false,
+            isActive: false,
           });
           return;
         }
 
         const profile = await fetchUserProfile(session.user.id);
         const isAdmin = profile?.role === "admin";
+        const isActive = profile?.status === "active";
+
+        // If user is deactivated, sign them out
+        if (profile && !isActive) {
+          await supabase.auth.signOut();
+          router.push("/auth/sign-in?error=Account+deactivated");
+          setAuthState({
+            user: null,
+            profile: null,
+            isLoading: false,
+            isAdmin: false,
+            isActive: false,
+          });
+          return;
+        }
 
         setAuthState({
           user: session.user as UserWithProfile,
           profile,
           isLoading: false,
           isAdmin,
+          isActive,
         });
       } catch (error) {
         console.error("Error setting up user:", error);
@@ -90,12 +108,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === "SIGNED_IN" && session) {
           const profile = await fetchUserProfile(session.user.id);
           const isAdmin = profile?.role === "admin";
+          const isActive = profile?.status === "active";
+
+          // If user is deactivated, sign them out
+          if (profile && !isActive) {
+            await supabase.auth.signOut();
+            router.push("/auth/sign-in?error=Account+deactivated");
+            setAuthState({
+              user: null,
+              profile: null,
+              isLoading: false,
+              isAdmin: false,
+              isActive: false,
+            });
+            return;
+          }
 
           setAuthState({
             user: session.user as UserWithProfile,
             profile,
             isLoading: false,
             isAdmin,
+            isActive,
           });
         } else if (event === "SIGNED_OUT") {
           setAuthState({
@@ -103,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             profile: null,
             isLoading: false,
             isAdmin: false,
+            isActive: false,
           });
         }
       }
@@ -120,7 +155,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Helper function to check if user has a specific role or any of the roles
   const hasRole = (roles: UserRole | UserRole[]): boolean => {
-    if (!authState.profile) return false;
+    if (!authState.profile || !authState.isActive) return false;
     
     if (Array.isArray(roles)) {
       return roles.includes(authState.profile.role);

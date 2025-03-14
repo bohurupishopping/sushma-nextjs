@@ -30,14 +30,22 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { display_name, role } = body;
+    const { display_name, role, status } = body;
+
+    // Create an update object with only the fields that are provided
+    const updateData: { 
+      display_name?: string; 
+      role?: string; 
+      status?: string;
+    } = {};
+    
+    if (display_name !== undefined) updateData.display_name = display_name;
+    if (role !== undefined) updateData.role = role;
+    if (status !== undefined) updateData.status = status;
 
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({
-        display_name,
-        role,
-      })
+      .update(updateData)
       .eq('user_id', params.id)
       .select()
       .single();

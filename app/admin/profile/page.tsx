@@ -71,17 +71,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { UserRole } from "@/types/user";
-
-// Define the profile type
-interface Profile {
-  id: string;
-  user_id: string;
-  role: UserRole;
-  display_name: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { UserRole, UserStatus, Profile } from "@/types/user";
 
 // Form schema for editing a profile
 const profileFormSchema = z.object({
@@ -89,6 +79,7 @@ const profileFormSchema = z.object({
     message: "Name must be at least 2 characters.",
   }),
   role: z.enum(["user", "admin", "dealer", "worker", "salesman"] as const),
+  status: z.enum(["active", "deactivated"] as const),
 });
 
 export default function ProfilePage() {
@@ -105,6 +96,7 @@ export default function ProfilePage() {
     defaultValues: {
       display_name: "",
       role: "user",
+      status: "active",
     },
   });
 
@@ -142,6 +134,7 @@ export default function ProfilePage() {
     form.reset({
       display_name: profile.display_name || '',
       role: profile.role,
+      status: profile.status || 'active',
     });
     setIsEditDialogOpen(true);
   };
@@ -166,7 +159,7 @@ export default function ProfilePage() {
 
       toast({
         title: "Profile updated successfully",
-        description: `${values.display_name}'s role has been updated to ${values.role}.`,
+        description: `${values.display_name}'s profile has been updated.`,
         variant: "success"
       });
 
@@ -192,11 +185,52 @@ export default function ProfilePage() {
     }
   };
 
+  // Toggle user status (activate/deactivate)
+  const handleToggleStatus = async (profile: Profile) => {
+    try {
+      const response = await fetch(`/api/profiles/${profile.user_id}/toggle-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to toggle user status');
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: data.message,
+        description: `${profile.display_name || 'User'}'s status has been updated.`,
+        variant: "success"
+      });
+
+      // Refresh the profiles list
+      const profilesResponse = await fetch('/api/profiles');
+      if (!profilesResponse.ok) {
+        throw new Error('Failed to fetch profiles');
+      }
+      const profilesData = await profilesResponse.json();
+      setProfiles(profilesData);
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      toast({
+        variant: "destructive",
+        title: "Error updating status",
+        description: "There was a problem updating the user's status.",
+      });
+    }
+  };
+
   // Filter profiles based on search query
   const filteredProfiles = profiles.filter(profile => 
     profile.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     profile.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    profile.user_id.toLowerCase().includes(searchQuery.toLowerCase())
+    profile.user_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    profile.status?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Get role badge variant
@@ -212,6 +246,25 @@ export default function ProfilePage() {
         return "default";
       default:
         return "outline";
+    }
+  };
+
+  // Get status badge and icon
+  const getStatusBadge = (status: UserStatus) => {
+    if (status === 'active') {
+      return (
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <span>Active</span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center gap-2">
+          <XCircle className="h-4 w-4 text-red-500" />
+          <span>Deactivated</span>
+        </div>
+      );
     }
   };
 
@@ -280,12 +333,12 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-gray-500">
-                    Workers & Salesmen
+                    Active Users
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {profiles.filter(p => p.role === "worker" || p.role === "salesman").length}
+                    {profiles.filter(p => p.status === "active").length}
                   </div>
                 </CardContent>
               </Card>
@@ -338,7 +391,7 @@ export default function ProfilePage() {
                       </TableHeader>
                       <TableBody>
                         {filteredProfiles.map((profile) => (
-                          <TableRow key={profile.id}>
+                          <TableRow key={profile.id} className={profile.status === 'deactivated' ? 'opacity-60' : ''}>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <Avatar>
@@ -363,10 +416,7 @@ export default function ProfilePage() {
                               {new Date(profile.created_at).toLocaleDateString()}
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                <span>Active</span>
-                              </div>
+                              {getStatusBadge(profile.status)}
                             </TableCell>
                             <TableCell>
                               <DropdownMenu>
@@ -427,8 +477,11 @@ export default function ProfilePage() {
                                     </DropdownMenuRadioItem>
                                   </DropdownMenuRadioGroup>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive">
-                                    Deactivate
+                                  <DropdownMenuItem 
+                                    className={profile.status === 'active' ? "text-destructive" : "text-green-600"}
+                                    onClick={() => handleToggleStatus(profile)}
+                                  >
+                                    {profile.status === 'active' ? 'Deactivate' : 'Activate'}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -460,7 +513,7 @@ export default function ProfilePage() {
           <DialogHeader>
             <DialogTitle>Edit User Profile</DialogTitle>
             <DialogDescription>
-              Update user information and role. Changing a user's role will automatically create the appropriate role-specific record.
+              Update user information, role, and status. Changing a user's role will automatically create the appropriate role-specific record.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -503,6 +556,33 @@ export default function ProfilePage() {
                     </Select>
                     <FormDescription>
                       Changing a user's role will automatically create the appropriate role-specific record.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>User Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="deactivated">Deactivated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Deactivated users cannot log in or access the system.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

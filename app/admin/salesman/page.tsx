@@ -294,7 +294,7 @@ export default function SalesmanPage() {
                           <TableCell>
                             <Badge 
                               variant={
-                                salesman.performance === "excellent" ? "success" : 
+                                salesman.performance === "excellent" ? "secondary" : 
                                 salesman.performance === "good" ? "default" :
                                 salesman.performance === "average" ? "outline" : "destructive"
                               }

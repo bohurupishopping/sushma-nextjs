@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { LogIn, Mail, Lock, Github, Chrome } from "lucide-react";
+import { LogIn, Mail, Lock, Github, Chrome, AlertCircle } from "lucide-react";
 import { useAuth } from "@/app/context/auth-context";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -20,6 +21,7 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
   const { authState } = useAuth();
+  const searchParams = useSearchParams();
 
   // Check for existing session on component mount
   useEffect(() => {
@@ -27,6 +29,14 @@ export default function SignIn() {
       router.push("/dashboard");
     }
   }, [authState.user, router]);
+
+  // Check for error parameter in URL
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam).replace(/\+/g, ' '));
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +85,19 @@ export default function SignIn() {
         </CardHeader>
         <form onSubmit={handleSignIn}>
           <CardContent className="space-y-4">
+            {error && error.includes('deactivated') && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Your account has been deactivated. Please contact an administrator for assistance.
+                </AlertDescription>
+              </Alert>
+            )}
+            {error && !error.includes('deactivated') && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email
@@ -129,11 +152,6 @@ export default function SignIn() {
                 Forgot password?
               </Link>
             </div>
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/50 rounded-lg">
-                {error}
-              </div>
-            )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button

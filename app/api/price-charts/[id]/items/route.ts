@@ -7,23 +7,61 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data, error } = await supabaseAdmin
+    console.log('Fetching price chart items for chart ID:', params.id);
+
+    // Get price chart items with product details
+    const { data: items, error: itemsError } = await supabaseAdmin
       .from('price_chart_items')
       .select(`
-        *,
-        product:products(*)
+        id,
+        price_per_unit,
+        currency,
+        effective_date,
+        expiry_date,
+        product:products (
+          id,
+          name,
+          category,
+          unit,
+          description
+        )
       `)
-      .eq('price_chart_id', params.id);
+      .eq('price_chart_id', params.id)
+      .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (itemsError) {
+      console.error('Supabase error fetching price chart items:', itemsError);
+      return NextResponse.json(
+        { error: `Failed to fetch price chart items: ${itemsError.message}` },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(data);
+    if (!items || items.length === 0) {
+      console.log('No items found for price chart:', params.id);
+      return NextResponse.json([]);
+    }
+
+    // Transform the data to match our Product interface
+    const transformedItems = items.map(item => ({
+      id: item.product.id,
+      name: item.product.name,
+      category: item.product.category,
+      unit: item.product.unit,
+      price_per_unit: item.price_per_unit,
+      currency: item.currency,
+      effective_date: item.effective_date,
+      expiry_date: item.expiry_date
+    }));
+
+    console.log('Successfully fetched price chart items:', transformedItems);
+    return NextResponse.json(transformedItems);
   } catch (error) {
-    console.error('Error fetching price chart items:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error in GET /api/price-charts/[id]/items:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 
