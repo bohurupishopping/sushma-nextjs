@@ -27,7 +27,8 @@ import {
   FilterIcon, 
   SearchIcon,
   EyeIcon,
-  CalendarIcon
+  CalendarIcon,
+  RefreshCwIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -75,27 +76,33 @@ export default function OrdersPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
-  // Fetch orders
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await fetch("/api/orders");
-        const data = await response.json();
-        setOrders(data);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch orders",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Fetch orders function
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/orders");
+      const data = await response.json();
+      setOrders(data);
+      toast({
+        title: "Success",
+        description: "Orders refreshed successfully",
+      });
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Initial fetch
+  useEffect(() => {
     fetchOrders();
-  }, [toast]);
+  }, []);
 
   // Handle status update
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
@@ -166,6 +173,18 @@ export default function OrdersPage() {
                 </p>
               </div>
               <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  onClick={fetchOrders}
+                  disabled={loading}
+                >
+                  <RefreshCwIcon className={cn(
+                    "h-4 w-4",
+                    loading && "animate-spin"
+                  )} />
+                  Refresh
+                </Button>
                 <Button 
                   variant="outline" 
                   className="gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
