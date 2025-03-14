@@ -3,16 +3,16 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    console.log('Fetching dealer details for ID:', params.id);
+    console.log('Fetching dealer details for ID:', context.params.id);
 
     // First get the dealer data
     const { data: dealerData, error: dealerError } = await supabaseAdmin
       .from('dealers')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .single();
 
     if (dealerError) {
@@ -24,7 +24,7 @@ export async function GET(
     }
 
     if (!dealerData) {
-      console.error('No dealer found for ID:', params.id);
+      console.error('No dealer found for ID:', context.params.id);
       return NextResponse.json(
         { error: 'Dealer not found' },
         { status: 404 }
@@ -76,4 +76,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}
