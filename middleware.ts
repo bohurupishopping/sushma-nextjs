@@ -2,7 +2,7 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// This middleware will only run on the edge runtime
+// This middleware will run on the edge runtime
 export const middleware = async (req: NextRequest) => {
   const res = NextResponse.next();
 
@@ -10,7 +10,7 @@ export const middleware = async (req: NextRequest) => {
     const supabase = createMiddlewareClient({ req, res });
     const { data: { session } } = await supabase.auth.getSession();
 
-    // Handle auth routes statically
+    // Handle auth routes
     if (req.nextUrl.pathname.startsWith('/auth')) {
       if (session) {
         const redirectUrl = req.nextUrl.clone();
@@ -20,7 +20,7 @@ export const middleware = async (req: NextRequest) => {
       return res;
     }
 
-    // Handle dashboard routes statically
+    // Handle dashboard routes
     if (req.nextUrl.pathname.startsWith('/dashboard')) {
       if (!session) {
         const redirectUrl = req.nextUrl.clone();
@@ -32,7 +32,7 @@ export const middleware = async (req: NextRequest) => {
 
     return res;
   } catch (e) {
-    // Fallback for static export - return the response as is
+    // Fallback - return the response as is
     return res;
   }
 };
