@@ -42,7 +42,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -114,14 +113,12 @@ export default function ProfilePage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch profiles
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*');
-
-        if (profilesError) throw profilesError;
-        
-        setProfiles(profilesData || []);
+        const response = await fetch('/api/profiles');
+        if (!response.ok) {
+          throw new Error('Failed to fetch profiles');
+        }
+        const profilesData = await response.json();
+        setProfiles(profilesData);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -154,16 +151,18 @@ export default function ProfilePage() {
     if (!currentProfile) return;
     
     try {
-      // Update the profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          display_name: values.display_name,
-          role: values.role,
-        })
-        .eq('user_id', currentProfile.user_id);
+      const response = await fetch(`/api/profiles/${currentProfile.user_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
 
-      if (updateError) throw updateError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
 
       toast({
         title: "Profile updated successfully",
@@ -172,13 +171,12 @@ export default function ProfilePage() {
       });
 
       // Refresh the profiles list
-      const { data: refreshedProfiles, error: refreshError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (refreshError) throw refreshError;
-      
-      setProfiles(refreshedProfiles || []);
+      const profilesResponse = await fetch('/api/profiles');
+      if (!profilesResponse.ok) {
+        throw new Error('Failed to fetch profiles');
+      }
+      const profilesData = await profilesResponse.json();
+      setProfiles(profilesData);
 
       // Reset form and close dialog
       form.reset();

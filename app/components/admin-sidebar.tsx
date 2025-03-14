@@ -14,7 +14,9 @@ import {
   LogOut,
   Store,
   Briefcase,
-  UserCog
+  UserCog,
+  Boxes,
+  FileSpreadsheet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/app/context/auth-context";
@@ -49,6 +51,7 @@ export const AdminSidebar = () => {
   const pathname = usePathname();
   const { authState, signOut } = useAuth();
   const [isManagementOpen, setIsManagementOpen] = useState(true);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(true);
 
   return (
     <div className="flex h-screen flex-col border-r bg-background">
@@ -74,6 +77,42 @@ export const AdminSidebar = () => {
             title="Orders" 
             isActive={pathname === "/admin/orders"}
           />
+          
+          <Collapsible 
+            open={isInventoryOpen} 
+            onOpenChange={setIsInventoryOpen}
+            className="w-full"
+          >
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-between px-3 py-2 text-sm font-medium"
+              >
+                <div className="flex items-center gap-3">
+                  <Boxes className="h-4 w-4" />
+                  <span>Inventory</span>
+                </div>
+                <ChevronDown className={cn(
+                  "h-4 w-4 transition-transform",
+                  isInventoryOpen ? "rotate-180" : ""
+                )} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-9 space-y-1 pt-1">
+              <SidebarNavItem 
+                href="/admin/products" 
+                icon={<Package className="h-4 w-4" />} 
+                title="Products" 
+                isActive={pathname === "/admin/products" || pathname.startsWith("/admin/products/")}
+              />
+              <SidebarNavItem 
+                href="/admin/price-charts" 
+                icon={<FileSpreadsheet className="h-4 w-4" />} 
+                title="Price Charts" 
+                isActive={pathname === "/admin/price-charts" || pathname.startsWith("/admin/price-charts/")}
+              />
+            </CollapsibleContent>
+          </Collapsible>
           
           <Collapsible 
             open={isManagementOpen} 

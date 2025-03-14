@@ -42,7 +42,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +77,8 @@ interface Dealer {
   updated_at: string;
   profile_display_name?: string | null;
   profile_role?: string;
+  price_chart_name?: string | null;
+  price_chart_code_display?: string | null;
 }
 
 // Form schema for adding/editing a dealer
@@ -87,6 +88,15 @@ const dealerFormSchema = z.object({
   }),
   email: z.string().email({
     message: "Please enter a valid email address.",
+  }).optional(),
+  salesman_id: z.string().optional(),
+  price_chart_code: z.string().optional(),
+});
+
+// Edit form schema without email requirement
+const editDealerFormSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
   }),
   salesman_id: z.string().optional(),
   price_chart_code: z.string().optional(),
@@ -96,8 +106,11 @@ export default function DealerPage() {
   const { authState } = useAuth();
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [salesmen, setSalesmen] = useState<any[]>([]);
+  const [priceCharts, setPriceCharts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentDealer, setCurrentDealer] = useState<Dealer | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
@@ -111,51 +124,45 @@ export default function DealerPage() {
     },
   });
 
+  // Edit form
+  const editForm = useForm<z.infer<typeof editDealerFormSchema>>({
+    resolver: zodResolver(editDealerFormSchema),
+    defaultValues: {
+      name: "",
+      salesman_id: "",
+      price_chart_code: "",
+    },
+  });
+
   // Fetch dealers and salesmen data
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch dealers without trying to use foreign key relationships
-        const { data: dealersData, error: dealersError } = await supabase
-          .from('dealers')
-          .select('*');
-
-        if (dealersError) throw dealersError;
+        // Fetch dealers from API
+        const dealersResponse = await fetch('/api/dealers');
+        if (!dealersResponse.ok) {
+          throw new Error('Failed to fetch dealers');
+        }
+        const dealersData = await dealersResponse.json();
+        setDealers(dealersData);
         
-        // Fetch profiles separately
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, role');
-          
-        if (profilesError) throw profilesError;
+        // Fetch salesmen from API
+        const salesmenResponse = await fetch('/api/profiles');
+        if (!salesmenResponse.ok) {
+          throw new Error('Failed to fetch salesmen');
+        }
+        const profilesData = await salesmenResponse.json();
+        const salesmenData = profilesData.filter((profile: any) => profile.role === 'salesman');
+        setSalesmen(salesmenData);
         
-        // Create a map of user_id to profile data
-        const profileMap = new Map();
-        profilesData?.forEach(profile => {
-          profileMap.set(profile.user_id, profile);
-        });
-        
-        // Combine dealer data with profile data
-        const formattedDealers = dealersData?.map(dealer => {
-          const profile = profileMap.get(dealer.user_id);
-          return {
-            ...dealer,
-            profile_display_name: profile?.display_name || null,
-            profile_role: profile?.role || null
-          };
-        }) || [];
-        
-        // Fetch salesmen
-        const { data: salesmenData, error: salesmenError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name')
-          .eq('role', 'salesman');
-
-        if (salesmenError) throw salesmenError;
-
-        setDealers(formattedDealers);
-        setSalesmen(salesmenData || []);
+        // Fetch price charts from API
+        const priceChartsResponse = await fetch('/api/price-charts');
+        if (!priceChartsResponse.ok) {
+          throw new Error('Failed to fetch price charts');
+        }
+        const priceChartsData = await priceChartsResponse.json();
+        setPriceCharts(priceChartsData);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -171,31 +178,43 @@ export default function DealerPage() {
     fetchData();
   }, [toast]);
 
+  // Make fetchData available for other functions
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch dealers from API
+      const dealersResponse = await fetch('/api/dealers');
+      if (!dealersResponse.ok) {
+        throw new Error('Failed to fetch dealers');
+      }
+      const dealersData = await dealersResponse.json();
+      setDealers(dealersData);
+    } catch (error) {
+      console.error('Error refreshing dealers:', error);
+      toast({
+        variant: "destructive",
+        title: "Error refreshing data",
+        description: "There was a problem refreshing the dealers data.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle form submission for adding a new dealer
   const handleAddDealer = async (values: z.infer<typeof dealerFormSchema>) => {
     try {
-      // First create a new user with dealer role
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-        email: values.email,
-        email_confirm: true,
-        user_metadata: { name: values.name },
-        role: "dealer",
+      const response = await fetch('/api/dealers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
       });
 
-      if (userError) throw userError;
-
-      // The dealer record should be created automatically via the trigger
-      // But we can update it with additional info
-      if (values.salesman_id || values.price_chart_code) {
-        const { error: updateError } = await supabase
-          .from('dealers')
-          .update({
-            salesman_id: values.salesman_id || null,
-            price_chart_code: values.price_chart_code || null,
-          })
-          .eq('user_id', userData.user.id);
-
-        if (updateError) throw updateError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create dealer');
       }
 
       toast({
@@ -203,37 +222,13 @@ export default function DealerPage() {
         description: "The new dealer has been added to the system.",
       });
 
-      // Refresh the dealers list using the same approach as in fetchData
-      const { data: dealersData, error: dealersError } = await supabase
-        .from('dealers')
-        .select('*');
-
-      if (dealersError) throw dealersError;
-      
-      // Fetch profiles separately
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, role');
-        
-      if (profilesError) throw profilesError;
-      
-      // Create a map of user_id to profile data
-      const profileMap = new Map();
-      profilesData?.forEach(profile => {
-        profileMap.set(profile.user_id, profile);
-      });
-      
-      // Combine dealer data with profile data
-      const formattedDealers = dealersData?.map(dealer => {
-        const profile = profileMap.get(dealer.user_id);
-        return {
-          ...dealer,
-          profile_display_name: profile?.display_name || null,
-          profile_role: profile?.role || null
-        };
-      }) || [];
-      
-      setDealers(formattedDealers);
+      // Refresh the dealers list
+      const dealersResponse = await fetch('/api/dealers');
+      if (!dealersResponse.ok) {
+        throw new Error('Failed to fetch dealers');
+      }
+      const dealersData = await dealersResponse.json();
+      setDealers(dealersData);
 
       // Reset form and close dialog
       form.reset();
@@ -246,6 +241,62 @@ export default function DealerPage() {
         description: "There was a problem adding the new dealer.",
       });
     }
+  };
+
+  // Handle form submission for updating a dealer
+  const handleUpdateDealer = async (values: z.infer<typeof dealerFormSchema>) => {
+    if (!currentDealer) return;
+    
+    try {
+      const response = await fetch(`/api/dealers/${currentDealer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: values.name,
+          salesman_id: values.salesman_id || null,
+          price_chart_code: values.price_chart_code || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update dealer');
+      }
+
+      toast({
+        title: "Dealer updated successfully",
+        description: `${values.name}'s information has been updated.`,
+      });
+
+      // Refresh the dealers list
+      await refreshData();
+
+      // Reset form and close dialog
+      editForm.reset();
+      setIsEditDialogOpen(false);
+      setCurrentDealer(null);
+    } catch (error) {
+      console.error('Error updating dealer:', error);
+      toast({
+        variant: "destructive",
+        title: "Error updating dealer",
+        description: "There was a problem updating the dealer information.",
+      });
+    }
+  };
+
+  // Open edit dialog and set form values
+  const handleEditDealer = (dealer: Dealer) => {
+    setCurrentDealer(dealer);
+    editForm.reset({
+      name: dealer.name,
+      
+      salesman_id: dealer.salesman_id || "",
+      price_chart_code: dealer.price_chart_code || "",
+    });
+    setIsEditDialogOpen(true);
   };
 
   // Filter dealers based on search query
@@ -331,7 +382,7 @@ export default function DealerPage() {
                                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                   {...field}
                                 >
-                                  <option value="">Select a salesman</option>
+                                  <option value="">None (Unassigned)</option>
                                   {salesmen.map((salesman) => (
                                     <option key={salesman.user_id} value={salesman.user_id}>
                                       {salesman.display_name || salesman.user_id}
@@ -339,6 +390,32 @@ export default function DealerPage() {
                                   ))}
                                 </select>
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="price_chart_code"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Price Chart (Optional)</FormLabel>
+                              <FormControl>
+                                <select
+                                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  {...field}
+                                >
+                                  <option value="">None (Unassigned)</option>
+                                  {priceCharts.map((chart) => (
+                                    <option key={chart.id} value={chart.id}>
+                                      {chart.name} ({chart.price_chart_code})
+                                    </option>
+                                  ))}
+                                </select>
+                              </FormControl>
+                              <FormDescription>
+                                The price chart assigned to this dealer.
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -477,7 +554,14 @@ export default function DealerPage() {
                               {dealer.price_chart_code ? (
                                 <div className="flex items-center gap-2">
                                   <Store className="h-4 w-4 text-green-500" />
-                                  <span>Assigned</span>
+                                  <div>
+                                    <span className="font-medium">{dealer.price_chart_name || 'Assigned'}</span>
+                                    {dealer.price_chart_code_display && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {dealer.price_chart_code_display}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -498,7 +582,9 @@ export default function DealerPage() {
                                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem>View details</DropdownMenuItem>
-                                  <DropdownMenuItem>Edit dealer</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEditDealer(dealer)}>
+                                    Edit dealer
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem>Assign salesman</DropdownMenuItem>
                                   <DropdownMenuItem>Assign price chart</DropdownMenuItem>
                                   <DropdownMenuSeparator />
@@ -528,6 +614,95 @@ export default function DealerPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Dealer Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Dealer</DialogTitle>
+            <DialogDescription>
+              Update dealer information and assignments.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleUpdateDealer)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dealer Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter dealer name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="salesman_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned Salesman</FormLabel>
+                    <FormControl>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        {...field}
+                      >
+                        <option value="">None (Unassigned)</option>
+                        {salesmen.map((salesman) => (
+                          <option key={salesman.user_id} value={salesman.user_id}>
+                            {salesman.display_name || salesman.user_id}
+                            {currentDealer?.salesman_id === salesman.user_id ? ' (Current)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormDescription>
+                      The salesman responsible for this dealer.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="price_chart_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Chart</FormLabel>
+                    <FormControl>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        {...field}
+                      >
+                        <option value="">None (Unassigned)</option>
+                        {priceCharts.map((chart) => (
+                          <option key={chart.id} value={chart.id}>
+                            {chart.name} ({chart.price_chart_code})
+                            {currentDealer?.price_chart_code === chart.id ? ' (Current)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormDescription>
+                      The price chart assigned to this dealer.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </ProtectedRoute>
   );
 } 

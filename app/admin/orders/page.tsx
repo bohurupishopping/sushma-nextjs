@@ -136,9 +136,9 @@ export default function OrdersPage() {
                           <TableCell>
                             <Badge 
                               variant={
-                                order.status === "completed" ? "success" : 
+                                order.status === "completed" ? "outline" : 
                                 order.status === "processing" ? "default" :
-                                order.status === "pending" ? "warning" : "destructive"
+                                order.status === "pending" ? "secondary" : "destructive"
                               }
                             >
                               {order.status}
