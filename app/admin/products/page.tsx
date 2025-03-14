@@ -8,7 +8,8 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardDescription 
 } from "@/components/ui/card";
 import { 
   Table, 
@@ -27,7 +28,9 @@ import {
   Trash2,
   X,
   Check,
-  Loader2
+  Loader2,
+  Package2,
+  Filter
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,6 +51,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 // Product type definition
 type Product = {
@@ -255,6 +259,22 @@ export default function ProductsPage() {
     (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Get category badge color
+  const getCategoryColor = (category: string | null) => {
+    if (!category) return "secondary";
+    
+    switch (category.toLowerCase()) {
+      case 'premium':
+        return "orange";
+      case 'standard':
+        return "blue";
+      case 'basic':
+        return "green";
+      default:
+        return "secondary";
+    }
+  };
+
   return (
     <ProtectedRoute requiredRoles={["admin"]}>
       <div className="flex h-screen">
@@ -262,26 +282,86 @@ export default function ProductsPage() {
         <AdminSidebar />
         
         {/* Main Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
           <div className="p-8 space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold">Products</h1>
+                <h1 className="text-3xl font-bold text-orange-600">Product Management</h1>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">
-                  Manage your product catalog
+                  Manage your product catalog and inventory
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button className="gap-2" onClick={handleCreateProduct} disabled={submitting}>
+                <Button 
+                  className="gap-2 bg-orange-600 hover:bg-orange-700 text-white rounded-full" 
+                  onClick={handleCreateProduct} 
+                  disabled={submitting}
+                >
                   <PlusIcon className="h-4 w-4" />
                   New Product
                 </Button>
               </div>
             </div>
             
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>All Products</CardTitle>
+            <Separator className="my-6" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="border-none shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Total Products
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">{products.length}</div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-none shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Premium Products
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-500">
+                    {products.filter(p => p.category?.toLowerCase() === 'premium').length}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-none shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Standard Products
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">
+                    {products.filter(p => p.category?.toLowerCase() === 'standard').length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Card className="border-none shadow-sm">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-semibold">All Products</CardTitle>
+                  <CardDescription>
+                    {filteredProducts.length} products in your catalog
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 rounded-full"
+                  onClick={fetchProducts}
+                  disabled={loading || submitting}
+                >
+                  <Filter className="h-4 w-4" />
+                  Filter
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between mb-4">
@@ -289,76 +369,67 @@ export default function ProductsPage() {
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                     <Input 
                       placeholder="Search products..." 
-                      className="pl-8"
+                      className="pl-8 rounded-full bg-background"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={fetchProducts}
-                    disabled={loading || submitting}
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24">
-                        <path
-                          fill="none"
-                          stroke="currentColor"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                    )}
-                    Refresh
-                  </Button>
                 </div>
                 
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            <div className="flex justify-center items-center">
-                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                              Loading products...
-                            </div>
-                          </TableCell>
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600"></div>
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Package2 className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">No products found</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      There are no products in the system.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-4"
+                      onClick={handleCreateProduct}
+                    >
+                      Add your first product
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50 dark:bg-slate-800">
+                          <TableHead>Name</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Unit</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ) : filteredProducts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            No products found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredProducts.map((product) => (
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
                           <TableRow key={product.id}>
                             <TableCell className="font-medium">{product.name}</TableCell>
                             <TableCell>
                               {product.category ? (
-                                <Badge variant="outline">{product.category}</Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`bg-${getCategoryColor(product.category)}-50 text-${getCategoryColor(product.category)}-700 border-${getCategoryColor(product.category)}-200`}
+                                >
+                                  {product.category}
+                                </Badge>
                               ) : (
-                                <span className="text-gray-400">-</span>
+                                <span className="text-muted-foreground text-sm">-</span>
                               )}
                             </TableCell>
-                            <TableCell>{product.unit}</TableCell>
-                            <TableCell className="max-w-xs truncate">
+                            <TableCell>
+                              <Badge variant="secondary" className="font-mono">
+                                {product.unit}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground">
                               {product.description || "-"}
                             </TableCell>
                             <TableCell className="text-right">
@@ -368,6 +439,7 @@ export default function ProductsPage() {
                                   size="icon"
                                   onClick={() => handleEditProduct(product)}
                                   disabled={submitting}
+                                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -378,6 +450,7 @@ export default function ProductsPage() {
                                       size="icon"
                                       onClick={() => handleDeleteProduct(product.id)}
                                       disabled={submitting}
+                                      className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                       {submitting ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -390,6 +463,7 @@ export default function ProductsPage() {
                                       size="icon"
                                       onClick={() => setDeleteConfirmId(null)}
                                       disabled={submitting}
+                                      className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                       <X className="h-4 w-4 text-red-500" />
                                     </Button>
@@ -400,6 +474,7 @@ export default function ProductsPage() {
                                     size="icon"
                                     onClick={() => setDeleteConfirmId(product.id)}
                                     disabled={submitting}
+                                    className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -407,10 +482,19 @@ export default function ProductsPage() {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button variant="outline" size="sm" className="rounded-full">
+                    Previous
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-full">
+                    Next
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -420,10 +504,20 @@ export default function ProductsPage() {
 
       {/* Create/Edit Product Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !submitting && setIsDialogOpen(open)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? "Edit Product" : "Create New Product"}
+            <DialogTitle className="flex items-center gap-2">
+              {editingProduct ? (
+                <>
+                  <Pencil className="h-5 w-5 text-orange-600" />
+                  Edit Product
+                </>
+              ) : (
+                <>
+                  <PlusIcon className="h-5 w-5 text-orange-600" />
+                  Create New Product
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
               {editingProduct
@@ -431,9 +525,10 @@ export default function ProductsPage() {
                 : "Fill in the details to create a new product."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <Separator />
+          <div className="grid gap-5 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+              <Label htmlFor="name" className="text-right font-medium">
                 Name
               </Label>
               <Input
@@ -447,7 +542,7 @@ export default function ProductsPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
+              <Label htmlFor="category" className="text-right font-medium">
                 Category
               </Label>
               <Select
@@ -466,7 +561,7 @@ export default function ProductsPage() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="unit" className="text-right">
+              <Label htmlFor="unit" className="text-right font-medium">
                 Unit
               </Label>
               <Select
@@ -484,7 +579,7 @@ export default function ProductsPage() {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
+              <Label htmlFor="description" className="text-right font-medium">
                 Description
               </Label>
               <Textarea
@@ -498,18 +593,28 @@ export default function ProductsPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
+          <Separator />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDialogOpen(false)} 
+              disabled={submitting}
+              className="rounded-full mt-2 sm:mt-0"
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveProduct} disabled={submitting}>
+            <Button 
+              onClick={handleSaveProduct} 
+              disabled={submitting}
+              className="bg-orange-600 hover:bg-orange-700 text-white rounded-full mt-2 sm:mt-0"
+            >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Saving...
                 </>
               ) : (
-                "Save"
+                "Save Product"
               )}
             </Button>
           </DialogFooter>

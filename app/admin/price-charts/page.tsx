@@ -9,7 +9,8 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardDescription 
 } from "@/components/ui/card";
 import { 
   Table, 
@@ -29,7 +30,9 @@ import {
   X,
   Check,
   Eye,
-  Loader2
+  Loader2,
+  FileSpreadsheet,
+  Filter
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,6 +46,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 // Type definitions
 type PriceChart = {
@@ -242,6 +246,16 @@ export default function PriceChartsPage() {
     (chart.description && chart.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  };
+
   return (
     <ProtectedRoute requiredRoles={["admin"]}>
       <div className="flex h-screen">
@@ -249,26 +263,86 @@ export default function PriceChartsPage() {
         <AdminSidebar />
         
         {/* Main Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
           <div className="p-8 space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold">Price Charts</h1>
+                <h1 className="text-3xl font-bold text-orange-600">Price Charts</h1>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">
-                  Manage price charts for different dealers
+                  Manage price charts for different dealers and customers
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button className="gap-2" onClick={handleCreatePriceChart} disabled={submitting}>
+                <Button 
+                  className="gap-2 bg-orange-600 hover:bg-orange-700 text-white rounded-full" 
+                  onClick={handleCreatePriceChart} 
+                  disabled={submitting}
+                >
                   <PlusIcon className="h-4 w-4" />
                   New Price Chart
                 </Button>
               </div>
             </div>
             
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>All Price Charts</CardTitle>
+            <Separator className="my-6" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="border-none shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Total Price Charts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">{priceCharts.length}</div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-none shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Active Charts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-500">
+                    {priceCharts.length}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-none shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Assigned Charts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-500">
+                    {priceCharts.length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Card className="border-none shadow-sm">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-semibold">All Price Charts</CardTitle>
+                  <CardDescription>
+                    {filteredPriceCharts.length} price charts available
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 rounded-full"
+                  onClick={fetchPriceCharts}
+                  disabled={loading || submitting}
+                >
+                  <Filter className="h-4 w-4" />
+                  Filter
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between mb-4">
@@ -276,79 +350,66 @@ export default function PriceChartsPage() {
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                     <Input 
                       placeholder="Search price charts..." 
-                      className="pl-8"
+                      className="pl-8 rounded-full bg-background"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={fetchPriceCharts}
-                    disabled={loading || submitting}
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <svg className="h-4 w-4" viewBox="0 0 24 24">
-                        <path
-                          fill="none"
-                          stroke="currentColor"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                    )}
-                    Refresh
-                  </Button>
                 </div>
                 
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            <div className="flex justify-center items-center">
-                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                              Loading price charts...
-                            </div>
-                          </TableCell>
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600"></div>
+                  </div>
+                ) : filteredPriceCharts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <FileSpreadsheet className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">No price charts found</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      There are no price charts in the system.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-4"
+                      onClick={handleCreatePriceChart}
+                    >
+                      Create your first price chart
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50 dark:bg-slate-800">
+                          <TableHead>Code</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ) : filteredPriceCharts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            No price charts found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredPriceCharts.map((chart) => (
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPriceCharts.map((chart) => (
                           <TableRow 
                             key={chart.id} 
-                            className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900" 
+                            className="cursor-pointer" 
                             onClick={() => !submitting && handleViewPriceChart(chart.id)}
                           >
-                            <TableCell className="font-medium">
-                              <Badge variant="outline">{chart.price_chart_code}</Badge>
+                            <TableCell>
+                              <Badge 
+                                variant="outline" 
+                                className="bg-orange-50 text-orange-700 border-orange-200 font-mono"
+                              >
+                                {chart.price_chart_code}
+                              </Badge>
                             </TableCell>
-                            <TableCell>{chart.name}</TableCell>
-                            <TableCell className="max-w-xs truncate">
+                            <TableCell className="font-medium">{chart.name}</TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground">
                               {chart.description || "-"}
                             </TableCell>
-                            <TableCell>
-                              {new Date(chart.created_at).toLocaleDateString()}
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatDate(chart.created_at)}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
@@ -358,6 +419,7 @@ export default function PriceChartsPage() {
                                   title="View Details"
                                   onClick={() => handleViewPriceChart(chart.id)}
                                   disabled={submitting}
+                                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
@@ -367,6 +429,7 @@ export default function PriceChartsPage() {
                                   title="Edit"
                                   onClick={() => handleEditPriceChart(chart)}
                                   disabled={submitting}
+                                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -378,6 +441,7 @@ export default function PriceChartsPage() {
                                       onClick={() => handleDeletePriceChart(chart.id)}
                                       title="Confirm Delete"
                                       disabled={submitting}
+                                      className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                       {submitting ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -391,6 +455,7 @@ export default function PriceChartsPage() {
                                       onClick={() => setDeleteConfirmId(null)}
                                       title="Cancel"
                                       disabled={submitting}
+                                      className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                       <X className="h-4 w-4 text-red-500" />
                                     </Button>
@@ -402,6 +467,7 @@ export default function PriceChartsPage() {
                                     onClick={() => setDeleteConfirmId(chart.id)}
                                     title="Delete"
                                     disabled={submitting}
+                                    className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -409,10 +475,19 @@ export default function PriceChartsPage() {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button variant="outline" size="sm" className="rounded-full">
+                    Previous
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-full">
+                    Next
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -422,10 +497,20 @@ export default function PriceChartsPage() {
 
       {/* Create/Edit Price Chart Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !submitting && setIsDialogOpen(open)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingPriceChart ? "Edit Price Chart" : "Create New Price Chart"}
+            <DialogTitle className="flex items-center gap-2">
+              {editingPriceChart ? (
+                <>
+                  <Pencil className="h-5 w-5 text-orange-600" />
+                  Edit Price Chart
+                </>
+              ) : (
+                <>
+                  <PlusIcon className="h-5 w-5 text-orange-600" />
+                  Create New Price Chart
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
               {editingPriceChart
@@ -433,9 +518,10 @@ export default function PriceChartsPage() {
                 : "Fill in the details to create a new price chart."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <Separator />
+          <div className="grid gap-5 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+              <Label htmlFor="name" className="text-right font-medium">
                 Name
               </Label>
               <Input
@@ -449,7 +535,7 @@ export default function PriceChartsPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
+              <Label htmlFor="description" className="text-right font-medium">
                 Description
               </Label>
               <Textarea
@@ -463,18 +549,28 @@ export default function PriceChartsPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
+          <Separator />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDialogOpen(false)} 
+              disabled={submitting}
+              className="rounded-full mt-2 sm:mt-0"
+            >
               Cancel
             </Button>
-            <Button onClick={handleSavePriceChart} disabled={submitting}>
+            <Button 
+              onClick={handleSavePriceChart} 
+              disabled={submitting}
+              className="bg-orange-600 hover:bg-orange-700 text-white rounded-full mt-2 sm:mt-0"
+            >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Saving...
                 </>
               ) : (
-                "Save"
+                "Save Price Chart"
               )}
             </Button>
           </DialogFooter>

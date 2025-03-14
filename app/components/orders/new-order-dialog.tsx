@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -29,8 +31,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Loader2, ShoppingCart, Building2, Package2, ClipboardList } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   dealer_id: z.string().min(1, "Dealer is required"),
@@ -76,6 +81,8 @@ export function NewOrderDialog() {
   const [selectedDealer, setSelectedDealer] = useState<Dealer | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetchingDealers, setFetchingDealers] = useState(false);
+  const [fetchingProducts, setFetchingProducts] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<FormData>({
@@ -91,6 +98,7 @@ export function NewOrderDialog() {
   // Fetch dealers
   useEffect(() => {
     const fetchDealers = async () => {
+      setFetchingDealers(true);
       try {
         const response = await fetch("/api/dealers");
         const data = await response.json();
@@ -108,42 +116,41 @@ export function NewOrderDialog() {
           variant: "destructive",
         });
         setDealers([]);
+      } finally {
+        setFetchingDealers(false);
       }
     };
 
-    fetchDealers();
-  }, [toast]);
+    if (open) {
+      fetchDealers();
+    }
+  }, [open, toast]);
 
   // Fetch dealer details when selected
   useEffect(() => {
     const fetchDealerDetails = async () => {
       const dealerId = form.getValues("dealer_id");
       if (!dealerId) {
-        console.log("No dealer ID selected, clearing state");
         setSelectedDealer(null);
         setProducts([]);
         return;
       }
 
-      console.log("Fetching dealer details for ID:", dealerId);
+      setFetchingProducts(true);
       try {
         const response = await fetch(`/api/dealers/${dealerId}/details`);
         const data = await response.json();
 
         if (!response.ok) {
-          console.error("Error response from API:", data);
           throw new Error(data.error || 'Failed to fetch dealer details');
         }
         
-        console.log("Received dealer data:", data);
         setSelectedDealer(data);
         
         // If dealer has a price chart, fetch its products
         if (data.price_chart?.id) {
-          console.log("Dealer has price chart:", data.price_chart.id);
           await fetchPriceChartProducts(data.price_chart.id);
         } else {
-          console.log("Dealer has no price chart assigned");
           toast({
             title: "Warning",
             description: "This dealer has no price chart assigned",
@@ -160,25 +167,24 @@ export function NewOrderDialog() {
         });
         setSelectedDealer(null);
         setProducts([]);
+      } finally {
+        setFetchingProducts(false);
       }
     };
 
     fetchDealerDetails();
-  }, [form.getValues("dealer_id"), toast]);
+  }, [form.watch("dealer_id"), toast]);
 
   // Fetch price chart products
   const fetchPriceChartProducts = async (priceChartId: string) => {
     try {
-      console.log("Fetching products for price chart:", priceChartId);
       const response = await fetch(`/api/price-charts/${priceChartId}/items`);
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error response from API:", data);
         throw new Error(data.error || 'Failed to fetch price chart products');
       }
 
-      console.log("Received price chart products:", data);
       setProducts(data);
     } catch (error) {
       console.error("Error fetching price chart products:", error);
@@ -218,8 +224,6 @@ export function NewOrderDialog() {
         notes: data.notes || null
       };
 
-      console.log('Submitting order data:', orderData);
-
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -231,7 +235,6 @@ export function NewOrderDialog() {
       const responseData = await response.json();
 
       if (!response.ok) {
-        console.error('Error response:', responseData);
         throw new Error(responseData.error || 'Failed to create order');
       }
 
@@ -256,127 +259,247 @@ export function NewOrderDialog() {
     }
   };
 
+  // Calculate total price
+  const calculateTotal = () => {
+    const quantity = Number(form.watch("quantity") || 0);
+    const productId = form.watch("product_id");
+    const selectedProduct = products.find(p => p.id === productId);
+    
+    if (selectedProduct && quantity > 0) {
+      return quantity * selectedProduct.price_per_unit;
+    }
+    return 0;
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button 
+          className="gap-2 bg-orange-600 hover:bg-orange-700 text-white rounded-full"
+        >
           <PlusIcon className="h-4 w-4" />
           New Order
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Create New Order</DialogTitle>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-2 rounded-full bg-orange-100 text-orange-600">
+              <ShoppingCart className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-xl font-semibold">Create New Order</DialogTitle>
+          </div>
+          <DialogDescription>
+            Fill in the details below to create a new order
+          </DialogDescription>
         </DialogHeader>
+        
+        <Separator className="my-4" />
+        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="dealer_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dealer</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setSelectedDealer(null);
-                    }}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a dealer" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Array.isArray(dealers) && dealers.map((dealer) => (
-                        <SelectItem key={dealer.id} value={dealer.id}>
-                          {dealer.name} ({dealer.dealer_code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {selectedDealer && (
-              <div className="text-sm text-gray-500">
-                <p>Dealer Code: {selectedDealer.dealer_code}</p>
-                <p>Salesman: {selectedDealer.profile?.display_name || 'Not assigned'}</p>
-                <p>Price Chart: {selectedDealer.price_chart?.name || 'Not assigned'}</p>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 text-orange-600 font-medium">
+                <Building2 className="h-4 w-4" />
+                <h3>Dealer Information</h3>
               </div>
-            )}
+              
+              <FormField
+                control={form.control}
+                name="dealer_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Dealer</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setSelectedDealer(null);
+                      }}
+                      value={field.value}
+                      disabled={fetchingDealers}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="rounded-md border-gray-300 dark:border-gray-700">
+                          <SelectValue placeholder={fetchingDealers ? "Loading dealers..." : "Select a dealer"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {fetchingDealers ? (
+                          <div className="flex items-center justify-center py-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Loading...
+                          </div>
+                        ) : dealers.length === 0 ? (
+                          <div className="p-2 text-sm text-gray-500">No dealers found</div>
+                        ) : (
+                          dealers.map((dealer) => (
+                            <SelectItem key={dealer.id} value={dealer.id}>
+                              {dealer.name} ({dealer.dealer_code})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="product_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!selectedDealer?.price_chart?.id}
-                  >
+              {selectedDealer && (
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Dealer Code:</span>
+                    <span className="font-medium">{selectedDealer.dealer_code}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Salesman:</span>
+                    <span className="font-medium">{selectedDealer.profile?.display_name || 'Not assigned'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Price Chart:</span>
+                    <span className="font-medium">{selectedDealer.price_chart?.name || 'Not assigned'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 text-orange-600 font-medium">
+                <Package2 className="h-4 w-4" />
+                <h3>Product Details</h3>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="product_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Product</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!selectedDealer?.price_chart?.id || fetchingProducts}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="rounded-md border-gray-300 dark:border-gray-700">
+                          <SelectValue placeholder={fetchingProducts ? "Loading products..." : "Select a product"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {fetchingProducts ? (
+                          <div className="flex items-center justify-center py-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Loading...
+                          </div>
+                        ) : products.length === 0 ? (
+                          <div className="p-2 text-sm text-gray-500">No products available</div>
+                        ) : (
+                          products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{product.name} ({product.unit})</span>
+                                <Badge variant="outline" className="ml-2 bg-orange-50 text-orange-700 border-orange-200">
+                                  ₹{product.price_per_unit}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Enter quantity"
+                        className="rounded-md border-gray-300 dark:border-gray-700"
+                        {...field}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {Array.isArray(products) && products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} ({product.unit}) - ₹{product.price_per_unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="1"
-                      placeholder="Enter quantity"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {form.watch("product_id") && form.watch("quantity") && Number(form.watch("quantity")) > 0 && (
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg border border-orange-200 dark:border-orange-800/30">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 dark:text-gray-300">Total Price:</span>
+                    <span className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                      ₹{calculateTotal().toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               )}
-            />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add any additional notes"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Separator />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating..." : "Create Order"}
-            </Button>
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 text-orange-600 font-medium">
+                <ClipboardList className="h-4 w-4" />
+                <h3>Additional Information</h3>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Add any additional notes or special instructions"
+                        className="rounded-md border-gray-300 dark:border-gray-700 min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setOpen(false)}
+                className="rounded-full"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="rounded-full bg-orange-600 hover:bg-orange-700 text-white" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Create Order
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

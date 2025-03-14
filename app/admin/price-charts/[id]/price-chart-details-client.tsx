@@ -30,7 +30,10 @@ import {
   X,
   Check,
   ArrowLeft,
-  Loader2
+  Loader2,
+  FileSpreadsheet,
+  Filter,
+  DollarSign
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 // Type definitions
 type PriceChart = {
@@ -352,6 +356,33 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
     }).format(amount);
   };
 
+  // Format date
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  };
+
+  // Get category badge color
+  const getCategoryColor = (category: string | null) => {
+    if (!category) return "secondary";
+    
+    switch (category.toLowerCase()) {
+      case 'premium':
+        return "orange";
+      case 'standard':
+        return "blue";
+      case 'basic':
+        return "green";
+      default:
+        return "secondary";
+    }
+  };
+
   return (
     <ProtectedRoute requiredRoles={["admin"]}>
       <div className="flex h-screen">
@@ -359,7 +390,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
         <AdminSidebar />
         
         {/* Main Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
           <div className="p-8 space-y-6">
             <div className="flex items-center gap-4 mb-6">
               <Button 
@@ -367,62 +398,59 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                 size="icon" 
                 onClick={() => router.push("/admin/price-charts")}
                 disabled={submitting}
+                className="h-10 w-10 rounded-full"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h1 className="text-3xl font-bold">
-                  {loading ? "Loading..." : priceChart?.name}
-                </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline">
-                    {loading ? "..." : priceChart?.price_chart_code}
-                  </Badge>
-                  <p className="text-gray-500 dark:text-gray-400">
-                    {loading ? "..." : priceChart?.description}
-                  </p>
+              <div className="space-y-1">
+                <div>
+                  <h1 className="text-3xl font-bold text-orange-600">
+                    {loading ? "Loading..." : priceChart?.name}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge 
+                      variant="outline" 
+                      className="bg-orange-50 text-orange-700 border-orange-200 font-mono"
+                    >
+                      {loading ? "..." : priceChart?.price_chart_code}
+                    </Badge>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {loading ? "..." : priceChart?.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
             
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Products & Pricing</CardTitle>
-                    <CardDescription>
-                      Manage products and their prices in this price chart
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-2"
-                      onClick={fetchPriceChart}
-                      disabled={loading || submitting}
-                    >
-                      {loading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24">
-                          <path
-                            fill="none"
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                          />
-                        </svg>
-                      )}
-                      Refresh
-                    </Button>
-                    <Button className="gap-2" onClick={handleAddProduct} disabled={submitting}>
-                      <PlusIcon className="h-4 w-4" />
-                      Add Product
-                    </Button>
-                  </div>
+            <Separator className="my-6" />
+            
+            <Card className="border-none shadow-sm">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl font-semibold">Products & Pricing</CardTitle>
+                  <CardDescription>
+                    Manage products and their prices in this price chart
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 rounded-full"
+                    onClick={fetchPriceChart}
+                    disabled={loading || submitting}
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filter
+                  </Button>
+                  <Button 
+                    className="gap-2 bg-orange-600 hover:bg-orange-700 text-white rounded-full" 
+                    onClick={handleAddProduct} 
+                    disabled={submitting}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Add Product
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -431,66 +459,80 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                     <Input 
                       placeholder="Search products..." 
-                      className="pl-8"
+                      className="pl-8 rounded-full bg-background"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                 </div>
                 
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Unit</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Effective Date</TableHead>
-                        <TableHead>Expiry Date</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4">
-                            <div className="flex justify-center items-center">
-                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                              Loading products...
-                            </div>
-                          </TableCell>
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600"></div>
+                  </div>
+                ) : filteredPriceItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">No products in this price chart</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add products to create a complete price chart
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-4"
+                      onClick={handleAddProduct}
+                    >
+                      Add your first product
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-slate-50 dark:bg-slate-800">
+                          <TableHead>Product</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Unit</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Effective Date</TableHead>
+                          <TableHead>Expiry Date</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ) : filteredPriceItems.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4">
-                            No products in this price chart
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredPriceItems.map((item) => (
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPriceItems.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">
                               {item.product?.name}
                             </TableCell>
                             <TableCell>
                               {item.product?.category ? (
-                                <Badge variant="outline">{item.product.category}</Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`bg-${getCategoryColor(item.product.category)}-50 text-${getCategoryColor(item.product.category)}-700 border-${getCategoryColor(item.product.category)}-200`}
+                                >
+                                  {item.product.category}
+                                </Badge>
                               ) : (
-                                <span className="text-gray-400">-</span>
+                                <span className="text-muted-foreground text-sm">-</span>
                               )}
                             </TableCell>
-                            <TableCell>{item.product?.unit}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="font-mono">
+                                {item.product?.unit}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="font-medium">
-                              {formatCurrency(item.price_per_unit, item.currency)}
+                              <span className="text-orange-600">
+                                {formatCurrency(item.price_per_unit, item.currency)}
+                              </span>
                             </TableCell>
-                            <TableCell>
-                              {new Date(item.effective_date).toLocaleDateString()}
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatDate(item.effective_date)}
                             </TableCell>
-                            <TableCell>
-                              {item.expiry_date 
-                                ? new Date(item.expiry_date).toLocaleDateString() 
-                                : "-"}
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatDate(item.expiry_date)}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
@@ -500,6 +542,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                                   title="Edit"
                                   onClick={() => handleEditPriceItem(item)}
                                   disabled={submitting}
+                                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -511,6 +554,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                                       onClick={() => handleDeletePriceItem(item.id)}
                                       title="Confirm Delete"
                                       disabled={submitting}
+                                      className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                       {submitting ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -524,6 +568,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                                       onClick={() => setDeleteConfirmId(null)}
                                       title="Cancel"
                                       disabled={submitting}
+                                      className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                       <X className="h-4 w-4 text-red-500" />
                                     </Button>
@@ -535,6 +580,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                                     onClick={() => setDeleteConfirmId(item.id)}
                                     title="Delete"
                                     disabled={submitting}
+                                    className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -542,10 +588,19 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button variant="outline" size="sm" className="rounded-full">
+                    Previous
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-full">
+                    Next
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -555,10 +610,20 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
 
       {/* Add/Edit Product Price Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !submitting && setIsDialogOpen(open)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingPriceItem ? "Edit Product Price" : "Add Product to Price Chart"}
+            <DialogTitle className="flex items-center gap-2">
+              {editingPriceItem ? (
+                <>
+                  <Pencil className="h-5 w-5 text-orange-600" />
+                  Edit Product Price
+                </>
+              ) : (
+                <>
+                  <PlusIcon className="h-5 w-5 text-orange-600" />
+                  Add Product to Price Chart
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
               {editingPriceItem
@@ -566,9 +631,10 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
                 : "Add a product and set its price for this price chart."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <Separator />
+          <div className="grid gap-5 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="product_id" className="text-right">
+              <Label htmlFor="product_id" className="text-right font-medium">
                 Product
               </Label>
               <Select
@@ -595,23 +661,30 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price_per_unit" className="text-right">
+              <Label htmlFor="price_per_unit" className="text-right font-medium">
                 Price
               </Label>
-              <Input
-                id="price_per_unit"
-                name="price_per_unit"
-                type="number"
-                step="0.01"
-                value={formData.price_per_unit}
-                onChange={handleInputChange}
-                className="col-span-3"
-                required
-                disabled={submitting}
-              />
+              <div className="col-span-3 flex">
+                <div className="bg-muted flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
+                  <span className="text-muted-foreground text-sm font-medium">
+                    {formData.currency}
+                  </span>
+                </div>
+                <Input
+                  id="price_per_unit"
+                  name="price_per_unit"
+                  type="number"
+                  step="0.01"
+                  value={formData.price_per_unit}
+                  onChange={handleInputChange}
+                  className="rounded-l-none"
+                  required
+                  disabled={submitting}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="currency" className="text-right">
+              <Label htmlFor="currency" className="text-right font-medium">
                 Currency
               </Label>
               <Select
@@ -629,7 +702,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="effective_date" className="text-right">
+              <Label htmlFor="effective_date" className="text-right font-medium">
                 Effective Date
               </Label>
               <Input
@@ -644,7 +717,7 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="expiry_date" className="text-right">
+              <Label htmlFor="expiry_date" className="text-right font-medium">
                 Expiry Date
               </Label>
               <Input
@@ -658,18 +731,28 @@ export function PriceChartDetailsClient({ id }: PriceChartDetailsClientProps) {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
+          <Separator />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDialogOpen(false)} 
+              disabled={submitting}
+              className="rounded-full mt-2 sm:mt-0"
+            >
               Cancel
             </Button>
-            <Button onClick={handleSavePriceItem} disabled={submitting}>
+            <Button 
+              onClick={handleSavePriceItem} 
+              disabled={submitting}
+              className="bg-orange-600 hover:bg-orange-700 text-white rounded-full mt-2 sm:mt-0"
+            >
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Saving...
                 </>
               ) : (
-                "Save"
+                "Save Price"
               )}
             </Button>
           </DialogFooter>
