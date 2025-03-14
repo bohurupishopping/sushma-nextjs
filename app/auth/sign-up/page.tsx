@@ -12,7 +12,7 @@ import Link from "next/link";
 import { UserPlus, Mail, Lock, User, Github, Chrome } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { UserRole } from "@/types/user";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function SignUp() {
   const [displayName, setDisplayName] = useState("");
@@ -22,8 +22,8 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [role, setRole] = useState<UserRole>("user"); // Default role is 'user'
   const router = useRouter();
+  const { toast } = useToast();
 
   const calculatePasswordStrength = (password: string): number => {
     let strength = 0;
@@ -57,14 +57,14 @@ export default function SignUp() {
     setError(null);
 
     try {
-      // Step 1: Sign up the user
+      // Step 1: Sign up the user with fixed "user" role in metadata
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             display_name: displayName,
-            role: role, // Include role in user metadata
+            role: "user", // Fixed role as "user"
           },
         },
       });
@@ -79,10 +79,22 @@ export default function SignUp() {
 
       if (signInError) throw signInError;
       
+      // Show success message
+      toast({
+        title: "Account created successfully!",
+        description: "Your account has been registered.",
+        variant: "success",
+      });
+      
       // Step 3: Redirect to dashboard
       router.push("/dashboard");
     } catch (error: any) {
       setError(error.message);
+      toast({
+        title: "Error creating account",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -174,24 +186,6 @@ export default function SignUp() {
                   required
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role (For Testing)</Label>
-              <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="worker">Worker</SelectItem>
-                  <SelectItem value="dealer">Dealer</SelectItem>
-                  <SelectItem value="salesman">Salesman</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Note: This is for testing purposes. In production, roles would be assigned by administrators.
-              </p>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
