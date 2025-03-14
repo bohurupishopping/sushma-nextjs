@@ -1,9 +1,38 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import type { NextRequest } from 'next/server';
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  description: string;
+}
+
+interface PriceChartItem {
+  id: string;
+  price_per_unit: number;
+  currency: string;
+  effective_date: string;
+  expiry_date: string | null;
+  product: Product;
+}
+
+interface TransformedItem {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  price_per_unit: number;
+  currency: string;
+  effective_date: string;
+  expiry_date: string | null;
+}
 
 // GET all items for a specific price chart
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -43,7 +72,7 @@ export async function GET(
     }
 
     // Transform the data to match our Product interface
-    const transformedItems = items.map(item => ({
+    const transformedItems = (items as unknown as PriceChartItem[]).map(item => ({
       id: item.product.id,
       name: item.product.name,
       category: item.product.category,
@@ -67,7 +96,7 @@ export async function GET(
 
 // POST a new price chart item
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

@@ -4,16 +4,16 @@ import type { NextRequest } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Fetching dealer details for ID:', context.params.id);
+    console.log('Fetching dealer details for ID:', params.id);
 
     // First get the dealer data
     const { data: dealerData, error: dealerError } = await supabaseAdmin
       .from('dealers')
       .select('*')
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .single();
 
     if (dealerError) {
@@ -25,7 +25,7 @@ export async function GET(
     }
 
     if (!dealerData) {
-      console.error('No dealer found for ID:', context.params.id);
+      console.error('No dealer found for ID:', params.id);
       return NextResponse.json(
         { error: 'Dealer not found' },
         { status: 404 }
