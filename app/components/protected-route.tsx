@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ 
   children, 
-  requiredRoles = ["user", "admin"] 
+  requiredRoles = ["user", "admin", "salesman", "worker", "dealer"]
 }: ProtectedRouteProps) => {
   const { authState, hasRole } = useAuth();
   const router = useRouter();
