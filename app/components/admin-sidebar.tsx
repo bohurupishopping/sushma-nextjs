@@ -161,9 +161,7 @@ export const AdminSidebar = () => {
             color="green"
           />
           
-          <div className="mt-4 mb-2">
-            <p className="text-xs font-medium text-muted-foreground px-3 mb-2">INVENTORY</p>
-          </div>
+          
           
           <Collapsible 
             open={isInventoryOpen} 
@@ -203,9 +201,7 @@ export const AdminSidebar = () => {
             </CollapsibleContent>
           </Collapsible>
           
-          <div className="mt-4 mb-2">
-            <p className="text-xs font-medium text-muted-foreground px-3 mb-2">USER MANAGEMENT</p>
-          </div>
+         
           
           <Collapsible 
             open={isManagementOpen} 
