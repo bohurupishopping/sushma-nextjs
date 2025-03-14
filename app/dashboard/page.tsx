@@ -46,7 +46,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Welcome back, {authState.user?.user_metadata?.display_name || "User"}! Here's an overview of your statistics.
+            Welcome back, {authState.profile?.display_name || "User"}! Here's an overview of your statistics.
           </p>
         </div>
         <div className="flex space-x-4">
@@ -99,7 +99,7 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between">
               <span className="font-medium">Display Name:</span>
-              <span>{authState.user?.user_metadata?.display_name}</span>
+              <span>{authState.profile?.display_name}</span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium">Role:</span>
@@ -109,7 +109,7 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between">
               <span className="font-medium">Account Created:</span>
-              <span>{new Date(authState.user?.created_at || "").toLocaleDateString()}</span>
+              <span>{authState.profile?.created_at ? new Date(authState.profile.created_at).toLocaleDateString() : ""}</span>
             </div>
           </div>
         </CardContent>
