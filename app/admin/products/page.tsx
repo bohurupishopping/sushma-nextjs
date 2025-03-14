@@ -308,77 +308,41 @@ export default function ProductsPage() {
             
             <Separator className="my-6" />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Total Products
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">{products.length}</div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Premium Products
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-500">
-                    {products.filter(p => p.category?.toLowerCase() === 'premium').length}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Standard Products
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-500">
-                    {products.filter(p => p.category?.toLowerCase() === 'standard').length}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
             <Card className="border-none shadow-sm">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-xl font-semibold">All Products</CardTitle>
                   <CardDescription>
-                    {filteredProducts.length} products in your catalog
+                    {filteredProducts.length} products in the system
                   </CardDescription>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-2 rounded-full"
-                  onClick={fetchProducts}
-                  disabled={loading || submitting}
-                >
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between mb-4">
-                  <div className="relative w-64">
+                <div className="flex items-center gap-2">
+                  <div className="relative w-[200px]">
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                     <Input 
                       placeholder="Search products..." 
-                      className="pl-8 rounded-full bg-background"
+                      className="pl-8 w-full rounded-full border-gray-200 dark:border-gray-700"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
+                  <Select
+                    onValueChange={(value) => handleSelectChange("category", value)}
+                  >
+                    <SelectTrigger className="w-[180px] rounded-full border-gray-200 dark:border-gray-700">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="premium">Premium</SelectItem>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="basic">Basic</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
+              </CardHeader>
+              <CardContent>
                 {loading ? (
                   <div className="flex justify-center items-center py-8">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600"></div>

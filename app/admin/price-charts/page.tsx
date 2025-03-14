@@ -286,45 +286,6 @@ export default function PriceChartsPage() {
             
             <Separator className="my-6" />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Total Price Charts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">{priceCharts.length}</div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Active Charts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-500">
-                    {priceCharts.length}
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-none shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">
-                    Assigned Charts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-500">
-                    {priceCharts.length}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
             <Card className="border-none shadow-sm">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
@@ -333,19 +294,7 @@ export default function PriceChartsPage() {
                     {filteredPriceCharts.length} price charts available
                   </CardDescription>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-2 rounded-full"
-                  onClick={fetchPriceCharts}
-                  disabled={loading || submitting}
-                >
-                  <Filter className="h-4 w-4" />
-                  Filter
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between mb-4">
+                <div className="flex items-center gap-3">
                   <div className="relative w-64">
                     <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                     <Input 
@@ -355,8 +304,19 @@ export default function PriceChartsPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 rounded-full"
+                    onClick={fetchPriceCharts}
+                    disabled={loading || submitting}
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filter
+                  </Button>
                 </div>
-                
+              </CardHeader>
+              <CardContent>
                 {loading ? (
                   <div className="flex justify-center items-center py-8">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600"></div>
@@ -578,4 +538,4 @@ export default function PriceChartsPage() {
       </Dialog>
     </ProtectedRoute>
   );
-} 
+}

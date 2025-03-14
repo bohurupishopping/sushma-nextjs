@@ -354,13 +354,7 @@ export default function ProfilePage() {
                 <CardTitle className="text-xl font-semibold">All User Profiles</CardTitle>
                 <CardDescription>Manage and update user accounts</CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="gap-2 rounded-full">
-                <FilterIcon className="h-4 w-4" />
-                Filter
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between mb-4">
+              <div className="flex items-center gap-3">
                 <div className="relative w-64">
                   <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                   <Input 
@@ -370,8 +364,13 @@ export default function ProfilePage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
+                <Button variant="outline" size="sm" className="gap-2 rounded-full">
+                  <FilterIcon className="h-4 w-4" />
+                  Filter
+                </Button>
               </div>
-              
+            </CardHeader>
+            <CardContent>
               {isLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>

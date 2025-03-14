@@ -237,7 +237,7 @@ export const AdminSidebar = () => {
                 title="Dealers" 
                 isActive={pathname === "/admin/dealer"}
                 color="purple"
-                badge="5"
+                badge="New"
               />
               <SidebarNavItem 
                 href="/admin/salesman" 
