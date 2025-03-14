@@ -1,43 +1,16 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+// This file is needed for Next.js to recognize the middleware configuration
+// but we're not using actual middleware functionality since we're using static export
+// Authentication is handled client-side in the app
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// This middleware will run on the edge runtime
-export const middleware = async (req: NextRequest) => {
-  const res = NextResponse.next();
+export function middleware(req: NextRequest) {
+  // For static export, we simply pass through all requests
+  return NextResponse.next();
+}
 
-  try {
-    const supabase = createMiddlewareClient({ req, res });
-    const { data: { session } } = await supabase.auth.getSession();
-
-    // Handle auth routes
-    if (req.nextUrl.pathname.startsWith('/auth')) {
-      if (session) {
-        const redirectUrl = req.nextUrl.clone();
-        redirectUrl.pathname = '/dashboard';
-        return NextResponse.redirect(redirectUrl);
-      }
-      return res;
-    }
-
-    // Handle dashboard routes
-    if (req.nextUrl.pathname.startsWith('/dashboard')) {
-      if (!session) {
-        const redirectUrl = req.nextUrl.clone();
-        redirectUrl.pathname = '/auth/sign-in';
-        return NextResponse.redirect(redirectUrl);
-      }
-      return res;
-    }
-
-    return res;
-  } catch (e) {
-    // Fallback - return the response as is
-    return res;
-  }
-};
-
-// Update matcher to only run on specific paths
+// Update matcher to exclude static assets
 export const config = {
   matcher: [
     /*
