@@ -181,6 +181,7 @@ export default function ProductsPage() {
         toast({
           title: "Success",
           description: "Product updated successfully",
+          variant: "success",
         });
       } else {
         // Create new product
@@ -200,6 +201,7 @@ export default function ProductsPage() {
         toast({
           title: "Success",
           description: "Product created successfully",
+          variant: "success",
         });
       }
 
@@ -235,6 +237,7 @@ export default function ProductsPage() {
       toast({
         title: "Success",
         description: "Product deleted successfully",
+        variant: "success",
       });
       
       // Refresh products list
@@ -622,4 +625,4 @@ export default function ProductsPage() {
       </Dialog>
     </ProtectedRoute>
   );
-} 
+}

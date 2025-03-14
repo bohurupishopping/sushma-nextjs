@@ -25,7 +25,13 @@ const AuthContext = createContext<AuthContextType>({
   hasRole: () => false,
 });
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>(initialState);
@@ -169,4 +175,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-}; 
+};

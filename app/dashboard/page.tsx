@@ -15,16 +15,13 @@ export default function Dashboard() {
       <div className="p-6 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Welcome back, {authState.profile?.display_name || "User"}!</h1>
-            <p className="mt-2 text-indigo-100">
+            <h1 className="text-xl font-bold">Welcome back, {authState.profile?.display_name || "User"}!</h1>
+            <p className="mt-2 text-sm text-indigo-100">
               Here's your dashboard overview for today
             </p>
           </div>
           <div className="flex space-x-3">
-            <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
-            </Button>
+           
             {hasRole("admin") && (
               <Link href="/admin">
                 <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">

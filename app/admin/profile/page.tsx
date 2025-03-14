@@ -398,7 +398,7 @@ export default function ProfilePage() {
                     </TableHeader>
                     <TableBody>
                       {filteredProfiles.map((profile) => (
-                        <TableRow key={profile.id} className={profile.status === 'deactivated' ? 'opacity-60 bg-slate-50 dark:bg-slate-900/50' : ''}>
+                        <TableRow key={profile.user_id} className={profile.status === 'deactivated' ? 'opacity-60 bg-slate-50 dark:bg-slate-900/50' : ''}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="border-2 border-purple-100">
@@ -449,7 +449,7 @@ export default function ProfilePage() {
                                 <DropdownMenuLabel>Change Role</DropdownMenuLabel>
                                 <DropdownMenuRadioGroup value={profile.role}>
                                   <DropdownMenuRadioItem 
-                                    key="user-role"
+                                    key={`user-role-${profile.user_id}`}
                                     value="user"
                                     onClick={() => {
                                       handleEditProfile({...profile, role: "user"});
@@ -459,7 +459,7 @@ export default function ProfilePage() {
                                     Regular User
                                   </DropdownMenuRadioItem>
                                   <DropdownMenuRadioItem 
-                                    key="dealer-role"
+                                    key={`dealer-role-${profile.user_id}`}
                                     value="dealer"
                                     onClick={() => {
                                       handleEditProfile({...profile, role: "dealer"});
@@ -469,7 +469,7 @@ export default function ProfilePage() {
                                     Dealer
                                   </DropdownMenuRadioItem>
                                   <DropdownMenuRadioItem 
-                                    key="worker-role"
+                                    key={`worker-role-${profile.user_id}`}
                                     value="worker"
                                     onClick={() => {
                                       handleEditProfile({...profile, role: "worker"});
@@ -479,7 +479,7 @@ export default function ProfilePage() {
                                     Worker
                                   </DropdownMenuRadioItem>
                                   <DropdownMenuRadioItem 
-                                    key="salesman-role"
+                                    key={`salesman-role-${profile.user_id}`}
                                     value="salesman"
                                     onClick={() => {
                                       handleEditProfile({...profile, role: "salesman"});
@@ -489,7 +489,7 @@ export default function ProfilePage() {
                                     Salesman
                                   </DropdownMenuRadioItem>
                                   <DropdownMenuRadioItem 
-                                    key="admin-role"
+                                    key={`admin-role-${profile.user_id}`}
                                     value="admin"
                                     onClick={() => {
                                       handleEditProfile({...profile, role: "admin"});
@@ -648,4 +648,4 @@ export default function ProfilePage() {
       </Dialog>
     </div>
   );
-} 
+}
