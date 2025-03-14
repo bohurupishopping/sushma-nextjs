@@ -74,7 +74,7 @@ interface Worker {
   position: string | null;
   created_at: string;
   updated_at: string;
-  profile?: {
+  profiles?: {
     display_name: string | null;
     email: string;
     role: string;
@@ -120,12 +120,33 @@ export default function WorkerPage() {
           .from('workers')
           .select(`
             *,
-            profile:profiles(display_name, email:auth.users(email), role)
+            profiles(display_name, role)
           `);
 
         if (workersError) throw workersError;
 
-        setWorkers(workersData || []);
+        // Fetch emails separately
+        const userIds = workersData?.map(worker => worker.user_id) || [];
+        const { data: usersData, error: usersError } = await supabase
+          .from('auth.users')
+          .select('id, email')
+          .in('id', userIds);
+
+        if (usersError) throw usersError;
+
+        // Combine the data
+        const workersWithProfiles = workersData?.map(worker => {
+          const userEmail = usersData?.find(user => user.id === worker.user_id)?.email || '';
+          return {
+            ...worker,
+            profiles: {
+              ...worker.profiles,
+              email: userEmail
+            }
+          } as Worker;
+        }) || [];
+
+        setWorkers(workersWithProfiles);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -181,11 +202,36 @@ export default function WorkerPage() {
         .from('workers')
         .select(`
           *,
-          profile:profiles(display_name, email:auth.users(email), role)
+          profiles(display_name, role)
         `);
 
       if (refreshError) throw refreshError;
-      setWorkers(refreshedWorkers || []);
+      
+      // Fetch emails separately
+      const refreshUserIds = refreshedWorkers?.map(worker => worker.user_id) || [];
+      const { data: refreshUsersData, error: refreshUsersError } = await supabase
+        .from('auth.users')
+        .select('id, email')
+        .in('id', refreshUserIds);
+
+      if (refreshUsersError) throw refreshUsersError;
+
+      // Combine the data
+      const refreshedWorkersWithProfiles = refreshedWorkers?.map(worker => {
+        const userEmail = refreshUsersData?.find((user: { id: string; email: string }) => 
+          user.id === worker.user_id
+        )?.email || '';
+        
+        return {
+          ...worker,
+          profiles: {
+            ...worker.profiles,
+            email: userEmail
+          }
+        } as Worker;
+      }) || [];
+
+      setWorkers(refreshedWorkersWithProfiles);
 
       // Reset form and close dialog
       form.reset();
@@ -206,7 +252,7 @@ export default function WorkerPage() {
     worker.worker_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
     worker.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     worker.position?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (worker.profile?.email as string)?.toLowerCase().includes(searchQuery.toLowerCase())
+    (worker.profiles?.email as string)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -408,7 +454,7 @@ export default function WorkerPage() {
                                 <div>
                                   <div className="font-medium">{worker.name}</div>
                                   <div className="text-sm text-muted-foreground">
-                                    {worker.profile?.email as string}
+                                    {worker.profiles?.email as string}
                                   </div>
                                 </div>
                               </div>
