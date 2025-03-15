@@ -75,4 +75,44 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}
+
+// DELETE order
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Check if order exists first
+    const { data: existingOrder, error: fetchError } = await supabaseAdmin
+      .from('orders')
+      .select('id')
+      .eq('id', params.id)
+      .single();
+
+    if (fetchError || !existingOrder) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from('orders')
+      .delete()
+      .eq('id', params.id);
+
+    if (deleteError) throw deleteError;
+
+    return NextResponse.json(
+      { message: 'Order deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete order' },
+      { status: 500 }
+    );
+  }
+}

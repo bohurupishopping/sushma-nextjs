@@ -31,7 +31,11 @@ import {
   CalendarIcon,
   RefreshCwIcon,
   ShoppingCart,
-  Package2
+  Package2,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Trash2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 
@@ -90,13 +94,15 @@ export default function OrdersPage() {
       toast({
         title: "Success",
         description: "Orders refreshed successfully",
+        variant: "success"
       });
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast({
+        variant: "destructive",
         title: "Error",
         description: "Failed to fetch orders",
-        variant: "destructive",
+        icon: <AlertCircle className="h-5 w-5" />
       });
     } finally {
       setLoading(false);
@@ -131,13 +137,16 @@ export default function OrdersPage() {
       toast({
         title: "Success",
         description: "Order status updated successfully",
+        variant: "success",
+        icon: <CheckCircle2 className="h-5 w-5" />
       });
     } catch (error) {
       console.error("Error updating order status:", error);
       toast({
+        variant: "destructive",
         title: "Error",
         description: "Failed to update order status",
-        variant: "destructive",
+        icon: <XCircle className="h-5 w-5" />
       });
     }
   };
@@ -146,6 +155,35 @@ export default function OrdersPage() {
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsDetailsOpen(true);
+  };
+
+  // Handle delete order
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete order");
+
+      // Update local state
+      setOrders(orders.filter(order => order.id !== orderId));
+
+      toast({
+        title: "Success",
+        description: "Order deleted successfully",
+        variant: "success",
+        icon: <CheckCircle2 className="h-5 w-5" />
+      });
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete order",
+        icon: <XCircle className="h-5 w-5" />
+      });
+    }
   };
 
   // Filter orders
@@ -351,6 +389,14 @@ export default function OrdersPage() {
                                 >
                                   <EyeIcon className="h-4 w-4" />
                                 </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                                 <Select
                                   value={order.status}
                                   onValueChange={(value) => handleStatusUpdate(order.id, value)}
@@ -395,4 +441,4 @@ export default function OrdersPage() {
       />
     </ProtectedRoute>
   );
-} 
+}

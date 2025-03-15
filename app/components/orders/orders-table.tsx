@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Package2 } from "lucide-react";
+import { Eye, Package2, Trash2 } from "lucide-react";
 import { OrderDetailsDialog } from "./order-details-dialog";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +41,10 @@ interface Order {
 interface OrdersTableProps {
   orders: Order[];
   loading?: boolean;
+  onDelete?: (orderId: string) => void;
 }
 
-export function OrdersTable({ orders, loading = false }: OrdersTableProps) {
+export function OrdersTable({ orders, loading = false, onDelete }: OrdersTableProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -152,14 +153,26 @@ export function OrdersTable({ orders, loading = false }: OrdersTableProps) {
                   {new Date(order.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewOrder(order)}
-                    className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleViewOrder(order)}
+                      className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(order.id)}
+                        className="h-8 w-8 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -174,4 +187,4 @@ export function OrdersTable({ orders, loading = false }: OrdersTableProps) {
       />
     </>
   );
-} 
+}
